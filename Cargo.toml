@@ -1,0 +1,7 @@
+[package]
+name = "reflectless"
+version = "0.1.0"
+authors = ["aikixd <aikixd@gmail.com>"]
+edition = "2018"
+
+[dependencies]
