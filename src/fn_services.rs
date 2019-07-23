@@ -14,7 +14,7 @@ impl<'ctx, TFn, TCtx, TParam, TResult> FnBinding<'ctx, TFn, TCtx, TParam, TResul
     where 
         TFn : Fn(TParam) -> TResult + Binder<'ctx, TCtx, TParam>
 {
-    pub fn bind(ctx : &'ctx TCtx, func: TFn) -> FnBinding<'ctx, TFn, TCtx, TParam, TResult>
+    pub fn new(ctx : &'ctx TCtx, func: TFn) -> FnBinding<'ctx, TFn, TCtx, TParam, TResult>
         where
     {
         FnBinding
@@ -36,107 +36,36 @@ impl<'ctx, TFn, TCtx, TParam, TResult> FnBinding<'ctx, TFn, TCtx, TParam, TResul
     }
 }
 
+pub trait FnContext<T>
+{
+    fn extract(&self) -> T;
+}
 
 pub trait Binder<'ctx, TCtx, TParam>
 {
     fn make_params(&self, ctx: &'ctx TCtx) -> TParam;
 }
 
-impl<'ctx, TCtx, Func, TResult, T1> Binder<'ctx, TCtx, (T1,)> for Func
-    where
-        Func : Fn((T1,)) -> TResult,
-        TCtx : FnContext<T1>
-{
-    fn make_params(&self, ctx: &'ctx TCtx) -> (T1,)
-    {
-        (
-            (ctx as &FnContext<T1>).extract(),
-        )
-    }
-}
-
-impl<'ctx, TCtx, Func, TResult, T1, T2> Binder<'ctx, TCtx, (T1, T2)> for Func
-    where
-        Func : Fn((T1, T2)) -> TResult,
-        TCtx : FnContext<T1> + FnContext<T2>
-{
-    fn make_params(&self, ctx: &'ctx TCtx) -> (T1, T2)
-    {
-        (
-            (ctx as &FnContext<T1>).extract(),
-            (ctx as &FnContext<T2>).extract(),
-        )
-    }
-}
-
-pub trait FnContext<T>
-{
-    fn extract(&self) -> T;
-}
-
-
-
-#[cfg(test)]
-mod tests 
-{
-    use crate::fn_services::*;
-
-    struct Ctx
-    {
-
-    }
-
-    impl FnContext<i32> for Ctx
-    {
-        fn extract(&self) -> i32
+macro_rules! binder_impl {
+    ( $head:ident $( $tail:ident )* ) => {
+        impl<'ctx, TCtx, Func, TResult, $head, $( $tail ),* > Binder<'ctx, TCtx, ( $head, $( $tail),* )> for Func
+            where Func : Fn(( $head, $( $tail ),* )) -> TResult,
+            TCtx : FnContext<$head> + $( FnContext<$tail> +)*
         {
-            2
+            fn make_params(&self, ctx: &'ctx TCtx) -> ($head, $( $tail ),* )
+            {
+                (
+                    (ctx as &FnContext<$head>).extract(),
+                    $((ctx as &FnContext<$tail>).extract(),)*
+                )
+            }
         }
-    }
 
-    impl FnContext<String> for Ctx
-    {
-        fn extract(&self) -> String
-        {
-            String::from("hello")
-        }
-    }
+        binder_impl!( $( $tail )* );
+    };
 
-    fn fn_1(param: (i32,)) -> i32
-    {
-        param.0
-    }
-
-    fn fn_2(param: (i32, String)) -> String
-    {
-        let num = param.0.to_string();
-
-        num + &param.1
-    }
-    
-    #[test]
-    fn apply_1() 
-    {
-        let ctx = Ctx 
-        {
-
-        };
-        
-        let applied = FnBinding::bind(&ctx, fn_1);
-        
-        assert_eq!(applied.call(), 2);
-    }
-
-    #[test]
-    fn apply_2()
-    {
-        let ctx = Ctx 
-        {
-
-        };
-        
-        let applied = FnBinding::bind(&ctx, fn_2);
-        
-        assert_eq!(applied.call(), "2hello");
-    }
+    () => {}
 }
+
+binder_impl!(T1 T2 T3 T4 T5 T6 T7 T8);
+

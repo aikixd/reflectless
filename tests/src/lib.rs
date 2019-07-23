@@ -1,4 +1,4 @@
-#[cfg(test)]
+//#[cfg(test)]
 mod tests 
 {
     use reflectless::fn_services::*;
@@ -44,7 +44,7 @@ mod tests
 
         };
         
-        let applied = FnBound::bind(&ctx, fn_1);
+        let applied = FnBinding::new(&ctx, fn_1);
         
         assert_eq!(applied.call(), 2);
     }
@@ -57,7 +57,7 @@ mod tests
 
         };
         
-        let applied = FnBound::bind(&ctx, fn_2);
+        let applied = FnBinding::new(&ctx, fn_2);
         
         assert_eq!(applied.call(), "2hello");
     }
