@@ -24,16 +24,16 @@ mod tests
         }
     }
 
-    fn fn_1(param: (i32,)) -> i32
+    fn fn_1(param: i32) -> i32
     {
-        param.0
+        param
     }
 
-    fn fn_2(param: (i32, String)) -> String
+    fn fn_2(i: i32, s: String) -> String
     {
-        let num = param.0.to_string();
+        let num = i.to_string();
 
-        num + &param.1
+        num + &s
     }
     
     #[test]

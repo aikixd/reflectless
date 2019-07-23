@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 pub struct FnBinding<'ctx, TFn, TCtx, TParam, TResult>
     where 
-        TFn : Fn(TParam) -> TResult
+        TFn : TupleArgs<TParam, TResult>
 {
     func: TFn,
     ctx: &'ctx TCtx,
@@ -27,7 +27,7 @@ pub trait TupleArgs<TParam, TResult>
 
 impl<'ctx, TFn, TCtx, TParam, TResult> FnBinding<'ctx, TFn, TCtx, TParam, TResult>
     where 
-        TFn : Fn(TParam) -> TResult + Binder<'ctx, TCtx, TParam>
+        TFn : TupleArgs<TParam, TResult> + Binder<'ctx, TCtx, TParam>
 {
     pub fn new(ctx : &'ctx TCtx, func: TFn) -> FnBinding<'ctx, TFn, TCtx, TParam, TResult>
         where
@@ -47,14 +47,14 @@ impl<'ctx, TFn, TCtx, TParam, TResult> FnBinding<'ctx, TFn, TCtx, TParam, TResul
         
         let prm = func.make_params(&self.ctx);
 
-        func(prm)
+        func.call(prm)
     }
 }
 
 macro_rules! binder_impl {
     ( $head:ident $( $tail:ident )* ) => {
         impl<'ctx, TCtx, Func, TResult, $head, $( $tail ),* > Binder<'ctx, TCtx, ( $head, $( $tail),* )> for Func
-            where Func : Fn(( $head, $( $tail ),* )) -> TResult,
+            where Func : Fn( $head, $( $tail ),* ) -> TResult,
             TCtx : FnContext<$head> + $( FnContext<$tail> +)*
         {
             fn make_params(&self, ctx: &'ctx TCtx) -> ($head, $( $tail ),* )
@@ -71,8 +71,6 @@ macro_rules! binder_impl {
 
     () => {}
 }
-
-binder_impl!(T1 T2 T3 T4 T5 T6 T7 T8);
 
 macro_rules! tuple_args_impl {
     ( $( ( $type:ident $name:ident) )* ) => {
@@ -98,16 +96,11 @@ macro_rules! tuple_args {
     () => {};
 }
 
-tuple_args!((T1 t1) (T2 t2) (T3 t3) (T4 t4) (T5 t5) (T6 t6) (T7 t7) (T8 t8));
-/*
-impl<Func, T1, T2, TResult> TupleArgs<(T1, T2,), TResult> for Func
-    where Func : Fn(T1, T2) -> TResult
-{
-    fn call(&self, params: (T1, T2)) -> TResult
-    {
-        self(params.0, params.1)
-    }
+macro_rules! go_types {
+    ( $( ( $type:ident $name:ident) )* ) => {
+        binder_impl!( $( $type )* );
+        tuple_args!($( ( $type $name) )*);
+    };
 }
 
-
-*/
+go_types!((T1 t1) (T2 t2) (T3 t3) (T4 t4) (T5 t5) (T6 t6) (T7 t7) (T8 t8));
